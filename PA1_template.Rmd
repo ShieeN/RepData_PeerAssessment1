@@ -7,19 +7,87 @@ output:
 
 
 ## Loading and preprocessing the data
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+Sys.setlocale("LC_TIME", "English")
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
+```
 
+First load the data we need to analyze.  
+
+```{r load}
+  
+  act<-read.csv("activity.csv")
+```
 
 
 ## What is mean total number of steps taken per day?
 
 
+```{r plot}
+  total_steps<-with(act, tapply(steps,date,sum,na.rm=T))
+  t<-data.frame(date=names(total_steps), steps=total_steps)
+  g<-ggplot(t)
+  print(g+geom_histogram(aes(steps,fill=date),binwidth = 400))
+  print(mean(t$steps))
+  print(median(t$steps))
+```
+
 
 ## What is the average daily activity pattern?
+And caculate the total number of steps per day:  
 
+What is the average daily activity pattern?  
+
+```{r plot2 }
+  avg<-with(act,tapply(steps,interval, sum,na.rm=T))
+  plot(names(avg),avg, type="l")
+  abline(v=names(avg)[which.max(avg)],col="red")
+  print(names(avg)[which.max(avg)])
+```
 
 
 ## Imputing missing values
 
+Imputing missing values:
+
+```{r}
+na<-sum(is.na(act))
+```
+The number of NA is `r na`.
+
+Use mean to substitute NAs:  
+```{r}
+  act1<-act
+  avg_mean = with(act,tapply(steps,interval,mean,na.rm=T))
+  for(i in which(is.na(act))){
+      act$steps[i]<-avg_mean[as.numeric(names(avg_mean))==act$interval[i]]
+  }
+```
+
+Let's do the thing like before to see if there is any different:  
+```{r}
+  total_steps<-with(act, tapply(steps,date,sum,na.rm=T))
+  t<-data.frame(date=names(total_steps), steps=total_steps)
+  g<-ggplot(t)
+  print(g+geom_histogram(aes(steps,fill=date),binwidth = 400))
+  print(mean(t$steps))
+  print(median(t$steps))
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+ 
+  act$weekdays <- strptime(act$date,"%Y-%m-%d")%>%format("%u")%>%as.numeric
+  act$weekdays[act$weekdays %in% c(1,2,3,4,5)] = "weekday"
+  act$weekdays[act$weekdays %in% c(6,7)] = "weekend"
+  ggplot(act)+geom_line(aes(interval,steps,col=weekdays),alpha=0.8)+facet_grid(.~weekdays)
+```
+
+
+
+
+
+
